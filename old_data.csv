@@ -1,0 +1,26 @@
+Student_ID,Gender,Age,Department,Attendance (%),GPA,Assignment Score,Study Hours/Week,Predicted Performance
+SDU001,Male,19,Economics,86.45,1.53,69.36,10,High Risk
+SDU002,Female,22,Biology,51.3,3.49,95.27,6,Safe
+SDU003,Female,22,Physics,77.06,1.61,75.69,1,High Risk
+SDU004,Male,18,Computer Science,69.79,2.32,74.81,8,High Risk
+SDU005,Male,23,Biology,79.3,2.72,62.37,7,Safe
+SDU006,Female,23,Physics,93.06,4.32,54.37,1,Safe
+SDU007,Female,20,Mathematics,75.36,3.48,90.51,4,Safe
+SDU008,Female,17,Mathematics,72.94,3.3,86.57,8,Safe
+SDU009,Female,18,Mathematics,67.92,3.78,88.95,9,Safe
+SDU010,Female,18,Economics,82.12,4.03,74.11,6,Safe
+SDU011,Female,23,Mathematics,82.76,2.68,82.28,9,Safe
+SDU012,Female,23,Mathematics,54.41,4.0,63.6,7,Safe
+SDU013,Male,17,Biology,63.42,1.75,94.75,4,High Risk
+SDU014,Male,18,Mathematics,81.67,2.85,67.86,1,Safe
+SDU015,Male,22,Mathematics,73.22,4.04,57.24,3,Safe
+SDU016,Female,20,Computer Science,84.8,3.8,68.58,3,Safe
+SDU017,Male,23,Mathematics,67.78,2.45,61.51,1,High Risk
+SDU018,Female,18,Economics,50.3,1.72,58.18,10,High Risk
+SDU019,Male,20,Biology,79.03,4.15,71.42,2,Safe
+SDU020,Female,19,Physics,55.85,4.02,69.98,5,Safe
+SDU021,Male,24,Economics,74.51,2.27,84.59,1,High Risk
+SDU022,Male,24,Mathematics,86.02,1.99,79.71,8,High Risk
+SDU023,Male,19,Mathematics,95.46,2.6,98.05,5,Safe
+SDU024,Male,24,Computer Science,56.97,3.2,76.99,8,Safe
+SDU025,Female,23,Biology,66.92,3.33,65.09,2,Safe
