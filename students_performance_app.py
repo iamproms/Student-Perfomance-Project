@@ -6,6 +6,8 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
 
 # File paths
 MODEL_PATH = Path("models/best_random_forest_model.pkl")
@@ -33,21 +35,75 @@ def load_model_and_scaler():
     scaler = joblib.load(SCALER_PATH)
     return model, scaler
 
-def plot_feature_importances(model, feature_names):
-    """Plot horizontal bar chart of feature importances"""
+def plot_feature_importances_plotly(model, feature_names):
+    """Plot interactive feature importance chart with Plotly"""
     if hasattr(model, 'feature_importances_'):
         importances = model.feature_importances_
-        indices = np.argsort(importances)
+        sorted_idx = np.argsort(importances)
         
-        plt.figure(figsize=(10, 6))
-        plt.title('Feature Importances')
-        plt.barh(range(len(indices)), importances[indices], color='#1f77b4', align='center')
-        plt.yticks(range(len(indices)), [feature_names[i] for i in indices])
-        plt.xlabel('Relative Importance')
-        plt.tight_layout()
-        st.pyplot(plt)
+        # Create DataFrame for plotting
+        df = pd.DataFrame({
+            'Feature': [feature_names[i] for i in sorted_idx],
+            'Importance': importances[sorted_idx]
+        })
+        
+        # Create the plot
+        fig = px.bar(df, 
+                     x='Importance', 
+                     y='Feature', 
+                     orientation='h',
+                     color='Importance',
+                     color_continuous_scale='Bluered',
+                     title='<b>Feature Importances</b>',
+                     labels={'Importance': 'Relative Importance'},
+                     height=500)
+        
+        fig.update_layout(
+            yaxis_title="",
+            xaxis_title="Relative Importance",
+            title_font_size=20,
+            hovermode='y',
+            template='plotly_white'
+        )
+        
+        # Add custom hover text
+        fig.update_traces(
+            hovertemplate="<b>%{y}</b><br>Importance: %{x:.4f}<extra></extra>"
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
     else:
         st.warning("Feature importances not available for this model type")
+
+def performance_gauge(prediction):
+    """Create a performance gauge chart"""
+    if prediction == "Passing":
+        value = 90
+        color = "green"
+    elif prediction == "Average":
+        value = 50
+        color = "orange"
+    else:
+        value = 10
+        color = "red"
+    
+    fig = go.Figure(go.Indicator(
+        mode = "gauge+number",
+        value = value,
+        domain = {'x': [0, 1], 'y': [0, 1]},
+        title = {'text': "Performance Potential"},
+        gauge = {
+            'axis': {'range': [0, 100]},
+            'bar': {'color': color},
+            'steps' : [
+                {'range': [0, 40], 'color': "red"},
+                {'range': [40, 70], 'color': "orange"},
+                {'range': [70, 100], 'color': "green"}]
+        }
+    ))
+    
+    fig.update_layout(height=300, margin=dict(t=50, b=10))
+    st.plotly_chart(fig, use_container_width=True)
 
 def main():
     st.set_page_config(page_title="Student Performance Predictor", layout="centered")
@@ -67,7 +123,7 @@ def main():
     # Input form in single column
     with st.form("prediction_form"):
         # All form elements in single column
-        age = st.number_input("Age", min_value=10, max_value=30, value=18) # You can manually improve this range
+        age = st.number_input("Age", min_value=10, max_value=30, value=18)
         gender = st.selectbox("Gender", options=["Male", "Female"])
         parental_education = st.selectbox("Parental Education Level", 
                                          ["High School", "Associate", "Bachelor", "Master", "PhD"])
@@ -78,15 +134,19 @@ def main():
                                        ["Low", "Moderate", "High", "Very High", "Excellent"])
         extracurricular = st.selectbox("In Extracurricular Activities?", ["Yes", "No"])
         sports = st.slider("Weekly Hours in Sports", 0, 10, 2)
-        music = st.slider("Weekly Hours in Music", 0, 10, 2)
-        volunteering = st.slider("Weekly Hours Volunteering", 0, 10, 1)
+        
+        # Default values for Music and Volunteering
+        music = 0  # Default value
+        volunteering = 0  # Default value
+        st.markdown("**Music & Volunteering**")
+        st.info("Music and volunteering hours are set to 0 by default based on institutional data")
 
         submitted = st.form_submit_button("Predict Performance")
 
     if submitted:
         # Process form inputs
         gender_encoded = 1 if gender == "Male" else 0
-        ethnicity_encoded = 0  # Default value for all entries
+        ethnicity_encoded = 0  # Default value for ethnicity
         education_encoded = {"High School": 0, "Associate": 1, "Bachelor": 2, "Master": 3, "PhD": 4}[parental_education]
         tutoring_encoded = 1 if tutoring == "Yes" else 0
         support_encoded = {"Low": 0, "Moderate": 1, "High": 2, "Very High": 3, "Excellent": 4}[parental_support]
@@ -108,7 +168,11 @@ def main():
             'study_time': study_time,
             'absences': absences,
             'tutoring_encoded': tutoring_encoded,
-            'support_encoded': support_encoded
+            'support_encoded': support_encoded,
+            'sports': sports,
+            'extracurricular': extracurricular,
+            'parental_education': parental_education,
+            'gender': gender
         }
         st.session_state.submitted = True
         st.session_state.show_insights = False
@@ -132,76 +196,103 @@ def main():
         if st.session_state.show_insights:
             # Visualizations section
             st.divider()
-            st.subheader("Model Insights")
+            st.subheader("📊 Model Insights")
+            
+            # Performance gauge
+            st.markdown("### 📈 Performance Potential")
+            performance_gauge(st.session_state.prediction)
             
             # Feature importances
-            st.markdown("### 📊 Feature Importances")
+            st.markdown("### 🔍 Feature Importances")
             st.markdown("Which factors most influence student performance predictions:")
-            plot_feature_importances(model, feature_names)
+            plot_feature_importances_plotly(model, feature_names)
             
             # Interpretation guide
-            st.markdown("""
-            **How to interpret this chart:**
-            - Features at the top have the strongest impact on predictions
-            - Longer bars indicate greater influence on the outcome
-            - Features at the bottom have minimal impact on predictions
-            """)
+            with st.expander("How to interpret this chart"):
+                st.markdown("""
+                - **Features at the top**: Have the strongest impact on predictions
+                - **Longer bars**: Indicate greater influence on the outcome
+                - **Color intensity**: Shows relative importance (darker = more important)
+                - **Features at the bottom**: Have minimal impact on predictions
+                """)
             
-            # Key factors distribution
+            # Student profile analysis
             st.divider()
-            st.markdown("### 🔑 Key Factors Distribution")
-            st.markdown("How different factors typically affect student performance:")
+            st.markdown("### 👤 Student Profile Analysis")
             
-            # Create columns for distribution charts
-            col1, col2, col3 = st.columns(3)
+            input_data = st.session_state.input_data
+            col1, col2 = st.columns(2)
+            
             with col1:
-                fig, ax = plt.subplots(figsize=(6, 4))
-                sns.histplot(x=[0, 5, 10, 15, 20, 25, 30, 35, 40], bins=8, color='#2ca02c', ax=ax)
-                ax.set_title('Study Time Distribution')
-                ax.set_xlabel('Hours per Week')
-                st.pyplot(fig)
+                st.metric("Weekly Study Time", f"{input_data['study_time']} hours", 
+                          help="Recommended: 15-25 hours")
+                st.metric("Absences", input_data['absences'], 
+                          help="Recommended: <5 absences", delta_color="inverse")
                 
             with col2:
-                fig, ax = plt.subplots(figsize=(6, 4))
-                sns.histplot(x=[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50], bins=10, color='#d62728', ax=ax)
-                ax.set_title('Absences Impact')
-                ax.set_xlabel('Number of Absences')
-                st.pyplot(fig)
+                st.metric("Parental Support", input_data['parental_education'], 
+                          help="Higher education levels correlate with better performance")
+                st.metric("Extracurricular", "Active" if input_data['extracurricular'] == "Yes" else "Not Active", 
+                          help="Students in activities show 23% better retention")
+            
+            # Risk factors
+            st.divider()
+            st.markdown("### ⚠️ Risk Factors")
+            
+            risk_factors = []
+            if input_data['study_time'] < 10:
+                risk_factors.append("Low study time")
+            if input_data['absences'] > 10:
+                risk_factors.append("High absences")
+            if input_data['support_encoded'] < 2:
+                risk_factors.append("Limited parental support")
+            if input_data['tutoring_encoded'] == 0:
+                risk_factors.append("No tutoring support")
                 
-            with col3:
-                fig, ax = plt.subplots(figsize=(6, 4))
-                support_levels = ["Low", "Moderate", "High", "Very High", "Excellent"]
-                sns.histplot(x=support_levels, color='#9467bd', ax=ax)
-                ax.set_title('Parental Support')
-                ax.set_xlabel('Support Level')
-                plt.xticks(rotation=45)
-                st.pyplot(fig)
+            if risk_factors:
+                for factor in risk_factors:
+                    st.error(f"• {factor}")
+            else:
+                st.success("No major risk factors identified")
             
             # Actionable recommendations
             st.divider()
-            st.markdown("### 💡 Performance Improvement Tips")
+            st.markdown("### 💡 Performance Improvement Plan")
             
-            if st.session_state.prediction != "Passing":
-                tips = []
-                input_data = st.session_state.input_data
+            tips = []
+            if input_data['study_time'] < 15:
+                tips.append(("⏱️ Increase study time", "Aim for 15-20 hours/week. Break into 45-min sessions"))
+            if input_data['absences'] > 10:
+                tips.append(("📝 Reduce absences", "Every absence reduces learning opportunities by 3-5%"))
+            if input_data['tutoring_encoded'] == 0:
+                tips.append(("👨‍🏫 Consider tutoring", "Targeted help can improve grades by 1-2 letter grades"))
+            if input_data['support_encoded'] < 2:
+                tips.append(("👪 Enhance parental support", "Family engagement improves motivation and accountability"))
+            if input_data['sports'] > 15:
+                tips.append(("⚖️ Balance sports commitment", "More than 15 hours/week can impact academic focus"))
                 
-                if input_data['study_time'] < 15:
-                    tips.append("⏱️ **Increase study time**: Aim for at least 15 hours/week")
-                if input_data['absences'] > 10:
-                    tips.append("📝 **Reduce absences**: Every absence reduces learning opportunities")
-                if input_data['tutoring_encoded'] == 0:
-                    tips.append("👨‍🏫 **Consider tutoring**: Targeted help addresses knowledge gaps")
-                if input_data['support_encoded'] < 2:
-                    tips.append("👪 **Enhance parental support**: Family engagement improves motivation")
-                
-                if tips:
-                    st.info("Based on this student's profile, consider these interventions:")
-                    for tip in tips:
-                        st.markdown(f"- {tip}")
-                else:
-                    st.info("The student is doing well in key areas. Focus on maintaining good habits.")
+            if tips:
+                st.info("Based on this student's profile, we recommend:")
+                for tip in tips:
+                    st.markdown(f"#### {tip[0]}")
+                    st.caption(tip[1])
             else:
                 st.success("This student shows strong performance indicators. Focus on maintaining these positive habits!")
+                
+                # Positive reinforcement
+                st.markdown("### 🌟 Strengths to Maintain")
+                strengths = []
+                if input_data['study_time'] >= 15:
+                    strengths.append("Excellent study habits")
+                if input_data['absences'] <= 5:
+                    strengths.append("Strong attendance record")
+                if input_data['support_encoded'] >= 3:
+                    strengths.append("Excellent support system")
+                if input_data['tutoring_encoded'] == 1:
+                    strengths.append("Proactive academic support")
+                    
+                for strength in strengths:
+                    st.success(f"• {strength}")
 
 if __name__ == "__main__":
     main()
