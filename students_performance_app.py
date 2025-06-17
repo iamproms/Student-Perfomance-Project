@@ -138,9 +138,6 @@ def main():
         # Default values for Music and Volunteering
         music = 0  # Default value
         volunteering = 0  # Default value
-        st.markdown("**Music & Volunteering**")
-        st.info("Music and volunteering hours are set to 0 by default based on institutional data")
-
         submitted = st.form_submit_button("Predict Performance")
 
     if submitted:
